@@ -17,6 +17,11 @@ local function log(message, level)
 	vim.notify(message, level, { title = "Neovim Read Aloud" })
 end
 
+-- Escape single quotes by closing, inserting \' and reopening
+local function shell_quote(str)
+	return "'" .. str:gsub("'", "'\\''") .. "'"
+end
+
 -- Kills any existing playback process by reading its PID from the pid_file.
 function M.kill_existing_playback()
 	log("Attempting to stop any active read-aloud process.", vim.log.levels.DEBUG)
@@ -78,11 +83,14 @@ function M.read_aloud_selection()
 		return
 	end
 	log("Selected text captured (" .. #selected_text .. " chars).", vim.log.levels.DEBUG)
+	local safe_text = shell_quote(selected_text)
 
 	-- Construct the command to run the read-aloud script in the background and store its PID
 	local escaped_pid_file = vim.fn.shellescape(config.pid_file)
-	local command_to_run =
-		string.format("sh -c '%s > /dev/null 2>&1 & echo $! > %s'", config.read_aloud_command, escaped_pid_file)
+
+	--	local command_to_run =
+	--		string.format("sh -c '%s > /dev/null 2>&1 & echo $! > %s'", config.read_aloud_command, escaped_pid_file)
+	local command_to_run = read_aloud_command:gsub("$1", safe_text)
 
 	log("Executing command: " .. command_to_run, vim.log.levels.DEBUG)
 
