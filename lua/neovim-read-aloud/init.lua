@@ -5,7 +5,6 @@
 local M = {}
 
 -- Default configuration
--- Users can override these options via the `opts` argument in their LazyVim plugin spec.
 local config = {
 	pid_file = vim.fn.stdpath("cache") .. "/neovim_read_aloud.pid",
 	read_aloud_command = "read-aloud", -- The TTS command. Assumed to be in PATH and reads from clipboard.
@@ -22,24 +21,44 @@ end
 function M.kill_existing_playback()
 	log("Attempting to stop any active read-aloud process.", vim.log.levels.DEBUG)
 
-	-- Read PID from file
+	-- Read PID from file safely
 	local f = io.open(config.pid_file, "r")
-	if f then
-		local pid_str = f:read("*a")
-		f:close()
-		local pid = tonumber(pid_str)
-
-		-- If PID is valid, send kill command
-		if pid then
-			vim.fn.system({ "kill", tostring(pid) })
-			log("Terminated read-aloud process (PID: " .. pid .. ").", vim.log.levels.DEBUG)
-		end
-	else
-		log("No active PID file found, no process to kill.", vim.log.levels.DEBUG)
+	if not f then
+		log("No PID file found, skipping kill process.", vim.log.levels.DEBUG)
+		return
 	end
 
-	-- Cleanup PID file
-	pcall(os.remove, config.pid_file)
+	local pid_str = f:read("*a")
+	f:close()
+
+	local pid = tonumber(pid_str)
+	if not pid then
+		log("Invalid PID content in file, skipping kill process.", vim.log.levels.WARN)
+		pcall(os.remove, config.pid_file) -- Cleanup faulty PID file
+		return
+	end
+
+	log("Attempting to terminate process with PID: " .. pid, vim.log.levels.DEBUG)
+
+	-- Use systemlist for better error handling
+	local kill_cmd = { "kill", tostring(pid) }
+	local result = vim.fn.systemlist(kill_cmd) -- Returns a table of lines instead of single string
+
+	if vim.v.shell_error == 0 then
+		log("Successfully terminated process with PID: " .. pid, vim.log.levels.DEBUG)
+	else
+		log("Failed to kill process. Output: " .. table.concat(result, " "), vim.log.levels.WARN)
+	end
+
+	-- Ensure PID file is removed
+	if vim.fn.filereadable(config.pid_file) == 1 then
+		local success, err = pcall(os.remove, config.pid_file)
+		if success then
+			log("PID file removed successfully.", vim.log.levels.DEBUG)
+		else
+			log("Failed to remove PID file. Error: " .. tostring(err), vim.log.levels.WARN)
+		end
+	end
 end
 
 -- Captures selected text, copies it to the clipboard, and runs the read-aloud script.
