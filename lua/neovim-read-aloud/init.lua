@@ -7,7 +7,7 @@ local M = {}
 -- Default configuration
 local config = {
 	pid_file = vim.fn.stdpath("cache") .. "/neovim_read_aloud.pid",
-	read_aloud_command = "read-aloud", -- The TTS command. Assumed to be in PATH and reads from clipboard.
+	read_aloud_command = "~/bin/neo-read.sh", -- The TTS command. Assumed to be in PATH and reads from clipboard.
 	log_level = vim.log.levels.INFO, -- Default log level for notifications.
 }
 
