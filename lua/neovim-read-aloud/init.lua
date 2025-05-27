@@ -20,7 +20,7 @@ local function log(message, level)
 	level = level or config.log_level
 	-- Check current log level if you want to be more granular, e.g., vim.v.log_level
 	-- For simplicity, all logs passed to this function will be shown as notifications.
-	vim.notify(message, level, { title = "Read Aloud" })
+	vim.notify(message, level, { title = "Neovim Read Aloud" })
 end
 
 -- Kills any existing playback process by reading its PID from the pid_file.
@@ -44,28 +44,17 @@ function M.kill_existing_playback()
 			log("Attempting to stop existing playback (PID: " .. pid .. ")", vim.log.levels.DEBUG)
 			-- Use vim.fn.system for better integration and error reporting
 			local kill_cmd_parts = { "kill", tostring(pid) }
-			-- Check if process exists first (optional, kill -0 pid)
-			-- local check_status = vim.fn.system({"kill", "-0", tostring(pid)})
-			-- if check_status == 0 then
 			local result = vim.fn.system(kill_cmd_parts)
 			if result.exit_code == 0 then
 				log("Kill command successful for PID: " .. pid, vim.log.levels.DEBUG)
 			else
+				-- FIX: Use `or ""` to handle nil values for stdout/stderr
+				local output = " Output: " .. (result.stdout or "") .. (result.stderr or "")
 				log(
-					"Kill command for PID "
-						.. pid
-						.. " exited with code "
-						.. result.exit_code
-						.. ". Output: "
-						.. result.stdout
-						.. result.stderr
-						.. " It might have already exited.",
+					"Kill command for PID " .. pid .. " exited with code " .. result.exit_code .. "." .. output,
 					vim.log.levels.WARN
 				)
 			end
-			-- else
-			--   log("Process with PID " .. pid .. " does not seem to exist.", vim.log.levels.DEBUG)
-			-- end
 		else
 			log("Invalid PID found in PID file: '" .. pid_str .. "'", vim.log.levels.WARN)
 		end
@@ -107,13 +96,8 @@ function M.read_aloud_selection()
 
 	-- Copy selected text to system clipboard (+ register)
 	if vim.fn.has("clipboard") == 1 then
-		-- It's good practice to save and restore clipboard if not intended to be modified permanently
-		-- local old_plus_reg_content = vim.fn.getreg('+')
-		-- local old_plus_reg_type = vim.fn.getregtype('+')
 		vim.fn.setreg("+", selected_text)
 		log("Selected text copied to system clipboard (+ register).", vim.log.levels.DEBUG)
-		-- To restore original clipboard content after a delay:
-		-- vim.defer_fn(function() vim.fn.setreg('+', old_plus_reg_content, old_plus_reg_type) end, 3000)
 	else
 		log(
 			"System clipboard not available/configured. `read-aloud` script might not work if it relies on the clipboard.",
@@ -122,9 +106,8 @@ function M.read_aloud_selection()
 		vim.notify(
 			"Warning: System clipboard access not available. Ensure `xclip`, `xsel`, or `wl-clipboard` is installed and Neovim has clipboard support.",
 			vim.log.levels.WARN,
-			{ title = "Read Aloud" }
+			{ title = "Neovim Read Aloud" }
 		)
-		-- If clipboard is essential for `read-aloud` script, we should probably stop here.
 		return
 	end
 
@@ -180,7 +163,6 @@ function M.read_aloud_selection()
 				end
 			end
 		end,
-		-- on_stdout is not strictly needed as stdout of read-aloud is redirected to /dev/null
 	})
 
 	if job_id and job_id > 0 then
