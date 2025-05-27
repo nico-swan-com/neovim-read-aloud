@@ -9,7 +9,7 @@ local M = {}
 -- Default configuration
 -- Users can override these options via the `opts` argument in their LazyVim plugin spec.
 local config = {
-	pid_file = vim.fn.stdpath("cache") .. "/lazy_read_aloud.pid",
+	pid_file = vim.fn.stdpath("cache") .. "/neovim_read_aloud.pid",
 	read_aloud_command = "read-aloud", -- The TTS command. Assumed to be in PATH and read from clipboard.
 	log_level = vim.log.levels.INFO, -- Default log level for notifications.
 	-- Use vim.log.levels.DEBUG for more verbose logging.
@@ -20,7 +20,7 @@ local function log(message, level)
 	level = level or config.log_level
 	-- Check current log level if you want to be more granular, e.g., vim.v.log_level
 	-- For simplicity, all logs passed to this function will be shown as notifications.
-	vim.notify(message, level, { title = "Lazy Read Aloud" })
+	vim.notify(message, level, { title = "Read Aloud" })
 end
 
 -- Kills any existing playback process by reading its PID from the pid_file.
@@ -122,7 +122,7 @@ function M.read_aloud_selection()
 		vim.notify(
 			"Warning: System clipboard access not available. Ensure `xclip`, `xsel`, or `wl-clipboard` is installed and Neovim has clipboard support.",
 			vim.log.levels.WARN,
-			{ title = "Lazy Read Aloud" }
+			{ title = "Read Aloud" }
 		)
 		-- If clipboard is essential for `read-aloud` script, we should probably stop here.
 		return
